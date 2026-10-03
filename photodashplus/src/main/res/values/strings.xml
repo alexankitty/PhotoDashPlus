@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="watch_face_name">Bold Utility</string>
+    <string name="watch_face_name">Photo Dash Plus</string>
     <string name="photo_label">Background photo</string>
     <string name="slot_steps">Steps (left arc)</string>
     <string name="slot_battery">Battery (right arc)</string>
@@ -19,4 +19,9 @@
     <string name="slot_stats1">Stat 1 (green)</string>
     <string name="slot_stats2">Stat 2 (blue)</string>
     <string name="slot_stats3">Stat 3 (pink)</string>
+    <string name="arcs_label">Health arcs</string>
+    <string name="arcs_both">Heart rate &amp; UV</string>
+    <string name="arcs_heart">Heart rate only</string>
+    <string name="arcs_uv">UV only</string>
+    <string name="arcs_none">None</string>
 </resources>

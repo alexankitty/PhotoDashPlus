@@ -19,7 +19,9 @@ its APK; each gauge fills one quadrant):
 - Pickable, no default: action pill under the clock, three stats along the
   top right (green/blue/pink dots), and a round complication top right
   (ring = progress for ranged/goal data, icon over value).
-- AM/PM only in 12-hour mode. Everything but the clock hides in always-on mode.
+- AM/PM only in 12-hour mode. Always-on mode shows everything except the photo
+  (colon stays solid).
+- Editor "Health arcs": heart rate & UV / heart rate only / UV only / none.
 Font: Quicksand throughout (SIL OFL - licenses/Quicksand-OFL.txt), bundled in
 res/font as static weights of the variable font (no regular: the lightest text uses medium). Quicksand has a Reserved Font
 Name, so these modified copies are renamed "BU Rounded" (rounded_*.ttf).
@@ -53,6 +55,6 @@ Runtime quirks the generator works around:
     # needs JDK 17+ and Android SDK (set sdk.dir in local.properties)
     ./gradlew :photodashplus:assembleDebug
     adb connect <watch-ip>:<port>      # Wireless debugging on the watch
-    adb install watchface/build/outputs/apk/debug/watchface-debug.apk
-    # then set it: press-and-hold face > pick "Bold Utility"
+    adb install photodashplus/build/outputs/apk/debug/photodashplus-debug.apk
+    # then set it: press-and-hold face > pick "Photo Dash Plus"
     # (some Wear OS versions need: adb shell am broadcast -a com.google.android.wearable.app.DEBUG_SURFACE --es operation set-watchface --es watchFaceId com.alexankitty.photodashplus)
