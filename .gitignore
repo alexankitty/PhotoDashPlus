@@ -1,0 +1,4 @@
+.gradle
+photodashplus/build
+build/**
+*.apk

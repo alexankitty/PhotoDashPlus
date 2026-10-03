@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="watch_face_name">Bold Utility</string>
+    <string name="photo_label">Background photo</string>
+    <string name="slot_steps">Steps (left arc)</string>
+    <string name="slot_battery">Battery (right arc)</string>
+    <string name="slot_action">Action button</string>
+    <string name="colors_label">Colors</string>
+    <string name="theme_lime">Lime mint</string>
+    <string name="theme_coral">Coral pink</string>
+    <string name="theme_blue">Blue violet</string>
+    <string name="theme_berry">Berry</string>
+    <string name="theme_orchid">Orchid</string>
+    <string name="theme_sunset">Sunset</string>
+    <string name="theme_ocean">Ocean</string>
+    <string name="theme_ember">Ember</string>
+    <string name="theme_mono">Mono</string>
+    <string name="slot_circle">Round complication</string>
+    <string name="slot_stats1">Stat 1 (green)</string>
+    <string name="slot_stats2">Stat 2 (blue)</string>
+    <string name="slot_stats3">Stat 3 (pink)</string>
+</resources>
