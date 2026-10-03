@@ -1,3 +1,6 @@
+<p align="center">
+  <img width="426" height="426" alt="image" src="https://github.com/user-attachments/assets/01481fee-6953-4d3b-b57e-4a30200969e5" />
+</p>
 # PhotoDashPlus(Wear OS Watch Face Format)
 
 Dimmed photo background + bold digital time + four data arcs.
