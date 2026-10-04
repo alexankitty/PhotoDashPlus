@@ -2,3 +2,4 @@
 photodashplus/build
 build/**
 *.apk
+__pycache__/
