@@ -3,3 +3,6 @@ photodashplus/build
 build/**
 *.apk
 __pycache__/
+local.properties
+*.jks
+*.keystore
