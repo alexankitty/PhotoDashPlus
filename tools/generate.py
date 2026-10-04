@@ -165,9 +165,10 @@ def font(size, color, weight="BOLD"):
     return f'<Font family="{FONTS[weight]}" size="{f(size)}" color="{color}">'
 
 
-def template(fmt, *exprs):
+def template(fmt, *exprs, shadow=True):
     params = "".join(f'<Parameter expression="{esc(e)}"/>' for e in exprs)
-    return f"{TEXT_SHADOW}<Template>{fmt}{params}</Template></Shadow>"
+    tpl = f"<Template>{fmt}{params}</Template>"
+    return f"{TEXT_SHADOW}{tpl}</Shadow>" if shadow else tpl
 
 
 def curved(d, a0, a1, size, color, fmt, *exprs, ccw=False, align="CENTER", weight="BOLD", rotate=None, alpha=None):
@@ -183,12 +184,12 @@ def curved(d, a0, a1, size, color, fmt, *exprs, ccw=False, align="CENTER", weigh
     return (f'<PartText x="0" y="0" width="450" height="450">{tf}'
             f'<TextCircular centerX="{C}" centerY="{C}" width="{f(d)}" height="{f(d)}" startAngle="{f(a0)}" '
             f'endAngle="{f(a1)}" align="{align}" direction="{direction}" ellipsis="TRUE">'
-            f'{font(size, color, weight)}{template(fmt, *exprs)}</Font></TextCircular></PartText>')
+            f'{font(size, color, weight)}{template(fmt, *exprs, shadow=color != INSIDE_TEXT)}</Font></TextCircular></PartText>')
 
 
 def text(x, y, w, h, size, color, fmt, *exprs, align="START", weight="NORMAL"):
     return (f'<PartText x="{f(x)}" y="{f(y)}" width="{f(w)}" height="{f(h)}">'
-            f'<Text align="{align}" ellipsis="TRUE">{font(size, color, weight)}{template(fmt, *exprs)}</Font></Text></PartText>')
+            f'<Text align="{align}" ellipsis="TRUE">{font(size, color, weight)}{template(fmt, *exprs, shadow=color != INSIDE_TEXT)}</Font></Text></PartText>')
 
 
 def image(x, y, w, h, resource, tint=None):
