@@ -24,4 +24,7 @@
     <string name="arcs_heart">Heart rate only</string>
     <string name="arcs_uv">UV only</string>
     <string name="arcs_none">None</string>
+    <string name="arcmode_label">Side arcs</string>
+    <string name="arcmode_custom">Complications</string>
+    <string name="arcmode_fixed">Steps &amp; battery</string>
 </resources>

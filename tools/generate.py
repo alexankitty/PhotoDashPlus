@@ -211,51 +211,84 @@ def s(*v):
     return [x * S for x in v]
 
 
-def band_slot(slot_id, name, span, colors, fade, icon_rect, ccw, default):
-    """Thick arc complication (steps / battery). The number rides just past the fill tip, or
-    moves inside the fill (in black) once the fill passes TEXT_INSIDE_AFTER degrees."""
+def band_body(span, colors, fade, ccw, sweep, fmt, exprs, icon):
+    """The track, fill and number for one thick gauge (steps / battery), plus its `icon`.
+    `sweep` is a 0..1 fill expression (None for an unfilled SHORT_TEXT body); `fmt`/`exprs`
+    format the number, which rides just past the fill tip or moves inside the fill (in black)
+    once the fill passes TEXT_INSIDE_AFTER degrees."""
     a0, a1 = span
-    start, end, text_color, icon_color = colors
+    start, end = colors[0], colors[1]
+    text_d = BAND_D  # curved text is centered on its circle, so this centers it in the band
+    track = (part_draw(arc(BAND_D, a0, a1, BAND_W, TRACK_SHADE))
+             + group(gradient_arc(BAND_D, a0, a1, BAND_W, start, end, fade), alpha=TRACK_ALPHA))
+    fill = gradient_arc(BAND_D, a0, a1, BAND_W, start, end, fade, sweep=sweep) if sweep else ""
+    tip = f"({sweep or '0'}) * {a1 - a0}"
+    # Past the tip the number takes the gradient's color at its position: start color, with
+    # the end color faded in by how far along the arc the text sits.
+    at = f"clamp(({tip} + {f(TEXT_GAP + 8)}) / {a1 - a0}, 0, 1)"
+    outside = "".join(
+        curved(text_d, a0, a0 + 80, NUM_SIZE, color, fmt, *exprs, ccw=ccw, align="START",
+               rotate=f"{tip} + {f(TEXT_GAP)}", alpha=alpha)
+        for color, alpha in ((start, None), (end, f"255 * {at}")))
+    inside = curved(text_d, a0 - 80, a0, NUM_SIZE, INSIDE_TEXT, fmt, *exprs,
+                    ccw=ccw, align="END", rotate=f"{tip} + {2 if ccw else 0}")
+    label = condition([(f"{tip} > {TEXT_INSIDE_AFTER}", inside)], outside) if sweep else outside
+    return group(track, fill, label, icon)
+
+
+def band_slot(slot_id, name, span, colors, fade, icon_rect, ccw, default, fallback_icon=None):
+    """Thick arc as a customizable complication slot (tappable, opens the provider's app).
+    `fallback_icon` is a bundled drawable drawn under the provider's image, for providers like
+    the step counter that send a value but no icon."""
+    a0, a1 = span
+    icon_color = colors[3]
     # Slot content is clipped to the BoundingArc region, so it has to cover the icon as well.
     ix, iy, iw, ih = icon_rect
     icon_angle = math.degrees(math.atan2(ix + iw / 2 - C, C - iy - ih / 2))
     lo, hi = min(a0, icon_angle) - 6, max(a1, icon_angle) + 6
-    text_d = BAND_D  # curved text is centered on its circle, so this centers it in the band
     out = [f'<ComplicationSlot slotId="{slot_id}" displayName="{name}" x="0" y="0" width="450" height="450" '
            f'supportedTypes="RANGED_VALUE GOAL_PROGRESS SHORT_TEXT EMPTY">',
            f'<BoundingArc centerX="{C}" centerY="{C}" width="450" height="450" startAngle="{f(lo)}" endAngle="{f(hi)}" thickness="60"/>',
            default]
-    icon = image(*icon_rect, "[COMPLICATION.MONOCHROMATIC_IMAGE]", tint=icon_color)
-    track = (part_draw(arc(BAND_D, a0, a1, BAND_W, TRACK_SHADE))
-             + group(gradient_arc(BAND_D, a0, a1, BAND_W, start, end, fade), alpha=TRACK_ALPHA))
-    for kind, p in (("RANGED_VALUE", RV), ("GOAL_PROGRESS", GP), ("SHORT_TEXT", "0")):
-        fill = gradient_arc(BAND_D, a0, a1, BAND_W, start, end, fade, sweep=p) if p != "0" else ""
-        tip = f"({p}) * {a1 - a0}"
-        # Past the tip the number takes the gradient's color at its position: start color, with
-        # the end color faded in by how far along the arc the text sits.
-        at = f"clamp(({tip} + {f(TEXT_GAP + 8)}) / {a1 - a0}, 0, 1)"
-        outside = "".join(
-            curved(text_d, a0, a0 + 80, NUM_SIZE, color, "%s", "[COMPLICATION.TEXT]", ccw=ccw, align="START",
-                   rotate=f"{tip} + {f(TEXT_GAP)}", alpha=alpha)
-            for color, alpha in ((start, None), (end, f"255 * {at}")))
-        inside = curved(text_d, a0 - 80, a0, NUM_SIZE, INSIDE_TEXT, "%s", "[COMPLICATION.TEXT]",
-                        ccw=ccw, align="END", rotate=f"{tip} + {2 if ccw else 0}")
-        label = condition([(f"{tip} > {TEXT_INSIDE_AFTER}", inside)], outside) if p != "0" else outside
-        out.append(f'<Complication type="{kind}">{group(track, fill, label, icon)}</Complication>')
+    fallback = image(*icon_rect, fallback_icon, tint=icon_color) if fallback_icon else ""
+    icon = fallback + image(*icon_rect, "[COMPLICATION.MONOCHROMATIC_IMAGE]", tint=icon_color)
+    for kind, p in (("RANGED_VALUE", RV), ("GOAL_PROGRESS", GP), ("SHORT_TEXT", None)):
+        body = band_body(span, colors, fade, ccw, p, "%s", ["[COMPLICATION.TEXT]"], icon)
+        out.append(f'<Complication type="{kind}">{body}</Complication>')
     out.append("</ComplicationSlot>")
     return "\n".join(out)
 
 
+def band_fixed(span, colors, fade, icon_rect, ccw, sweep, fmt, exprs, icon_res):
+    """Thick arc drawn straight from a data source (STEP_COUNT / BATTERY_PERCENT) with a bundled
+    icon, so it is not a complication slot and so can't be tapped to open an app."""
+    icon = image(*icon_rect, icon_res, tint=colors[3])
+    return band_body(span, colors, fade, ccw, sweep, fmt, exprs, icon)
+
+
 def build():
     T = COL
-    steps = band_slot(
-        0, "slot_steps", STEPS, (T["steps_start"], T["steps_end"], T["steps_text"], T["steps_icon"]),
-        ((C - BAND_D / 2, C), (C, C)), (5, 240, 22, 22), False,  # Samsung: s(4, 182, 20, 20), nudged clear of the round cap
-        '<DefaultProviderPolicy defaultSystemProvider="STEP_COUNT" defaultSystemProviderType="GOAL_PROGRESS"/>')
-    battery = band_slot(
-        2, "slot_battery", BATTERY, (T["bat_start"], T["bat_end"], T["bat_text"], T["bat_icon"]),
-        ((C, C), (C, C + BAND_D / 2)), (C + BAND_D / 2 - 11, 184, 22, 24), True,  # Samsung: s(340, 156, 11, 19); centered on the bar, wider
-        '<DefaultProviderPolicy defaultSystemProvider="WATCH_BATTERY" defaultSystemProviderType="RANGED_VALUE"/>')
+    # Steps (9 -> 12) and battery (3 -> 6): shared geometry for both the complication-slot and the
+    # fixed (source-driven) versions, so the two stay aligned.
+    steps_colors = (T["steps_start"], T["steps_end"], T["steps_text"], T["steps_icon"])
+    bat_colors = (T["bat_start"], T["bat_end"], T["bat_text"], T["bat_icon"])
+    steps_fade = ((C - BAND_D / 2, C), (C, C))
+    bat_fade = ((C, C), (C, C + BAND_D / 2))
+    steps_icon_rect = (5, 240, 22, 22)                 # Samsung: s(4, 182, 20, 20), nudged clear of the round cap
+    bat_icon_rect = (C + BAND_D / 2 - 11, 184, 22, 24)  # Samsung: s(340, 156, 11, 19); centered on the bar, wider
+
+    # Customizable (tappable) slots. The step provider sends no icon, so a bundled one backs it up.
+    steps = band_slot(0, "slot_steps", STEPS, steps_colors, steps_fade, steps_icon_rect, False,
+                      '<DefaultProviderPolicy defaultSystemProvider="STEP_COUNT" defaultSystemProviderType="GOAL_PROGRESS"/>',
+                      fallback_icon="steps_icon")
+    battery = band_slot(2, "slot_battery", BATTERY, bat_colors, bat_fade, bat_icon_rect, True,
+                        '<DefaultProviderPolicy defaultSystemProvider="WATCH_BATTERY" defaultSystemProviderType="RANGED_VALUE"/>')
+
+    # Fixed (non-tappable) versions, read straight from the step and battery sources.
+    steps_fixed = band_fixed(STEPS, steps_colors, steps_fade, steps_icon_rect, False,
+                             "clamp([STEP_COUNT], 0, [STEP_GOAL]) / [STEP_GOAL]", "%d", ["[STEP_COUNT]"], "steps_icon")
+    battery_fixed = band_fixed(BATTERY, bat_colors, bat_fade, bat_icon_rect, True,
+                               "[BATTERY_PERCENT] / 100", "%d%%", ["[BATTERY_PERCENT]"], "battery_icon")
 
     # Heart rate: a fixed gradient scale (40..220 bpm) with an arrow marking the current rate and
     # the reading centered on the arrow.
@@ -405,6 +438,13 @@ def build():
 <ListOption id="2" displayName="arcs_uv" screenReaderText="arcs_uv"/>
 <ListOption id="3" displayName="arcs_none" screenReaderText="arcs_none"/>
 </ListConfiguration>
+<!-- The side arcs as tappable complication slots, or fixed steps/battery that can't open an app.
+     complicationSlotIds enables slots 0 and 2 only on the "custom" option; the "fixed" option
+     leaves them off and the scene draws the source-driven arcs instead. -->
+<ListConfiguration id="arcMode" displayName="arcmode_label" screenReaderText="arcmode_label" defaultValue="0">
+<ListOption id="0" displayName="arcmode_custom" screenReaderText="arcmode_custom" complicationSlotIds="0 2"/>
+<ListOption id="1" displayName="arcmode_fixed" screenReaderText="arcmode_fixed"/>
+</ListConfiguration>
 </UserConfigurations>
 <Scene backgroundColor="#ff000000">
 <!-- Dimmed photo: alpha 0-255 (0 black, 255 full). Hidden in ambient. -->
@@ -415,6 +455,10 @@ def build():
 {steps}
 
 {battery}
+
+<!-- Fixed side arcs: shown only when arcMode is "fixed", where slots 0 and 2 are disabled. -->
+<ListConfiguration id="arcMode"><ListOption id="1">{steps_fixed}
+{battery_fixed}</ListOption></ListConfiguration>
 
 {action}
 
@@ -528,8 +572,47 @@ def write_images():
     Image.new("RGB", (450, 450), (0, 0, 0)).save(drawable / "default_image.png")
     for name, im in weather_icons().items():
         im.save(drawable / f"weather_{name}.png")
+    for name, im in badge_icons().items():
+        im.save(drawable / f"{name}.png")
     for old in drawable.glob("heart_*.png"):
         old.unlink()
+
+
+def badge_icons(ss=8):
+    """White glyphs (tinted at runtime) for the side arcs: a pair of footprints for steps and a
+    battery. Steps backs up the step provider's missing icon; both drive the fixed arcs."""
+    from PIL import Image, ImageDraw
+
+    def finish(mask, w, h):
+        rgba = Image.new("RGBA", mask.size, (255, 255, 255, 0))
+        rgba.putalpha(mask)
+        return rgba.resize((w, h), Image.LANCZOS)
+
+    out = {}
+    # Footprints on a 24-unit grid: a sole oval plus four toe dots, one foot ahead of the other.
+    g = 24
+    mask = Image.new("L", (g * ss, g * ss), 0)
+    d = ImageDraw.Draw(mask)
+    u = lambda *v: [x * ss for x in v]
+
+    def foot(cx, cy):
+        d.ellipse(u(cx - 3.6, cy - 9, cx + 3.4, cy - 1.5), fill=255)  # ball of the foot (wider, on top)
+        d.ellipse(u(cx - 2.6, cy - 3, cx + 2.6, cy + 5), fill=255)    # heel (narrower, below)
+
+    foot(8, 16.5)
+    foot(16, 11)
+    out["steps_icon"] = finish(mask, 22, 22)
+
+    # Battery: upright body outline, a terminal on top and a part-full charge bar.
+    bw, bh = 22, 24
+    mask = Image.new("L", (bw * ss, bh * ss), 0)
+    d = ImageDraw.Draw(mask)
+    u = lambda *v: [x * ss for x in v]
+    d.rounded_rectangle(u(4, 5, 18, 23), radius=round(3 * ss), outline=255, width=round(1.8 * ss))
+    d.rounded_rectangle(u(8, 1, 14, 5), radius=round(1.2 * ss), fill=255)
+    d.rounded_rectangle(u(7, 13, 15, 20), radius=round(1.2 * ss), fill=255)
+    out["battery_icon"] = finish(mask, bw, bh)
+    return out
 
 
 def make_stats_font():

@@ -1,60 +1,89 @@
 <p align="center">
-  <img width="426" height="426" alt="image" src="https://github.com/user-attachments/assets/01481fee-6953-4d3b-b57e-4a30200969e5" />
+  <img width="426" height="426" alt="Photo Dash Plus watch face" src="https://github.com/user-attachments/assets/01481fee-6953-4d3b-b57e-4a30200969e5" />
 </p>
 
-# PhotoDashPlus(Wear OS Watch Face Format)
+# Photo Dash Plus
 
-Dimmed photo background + bold digital time + four data arcs.
+A Wear OS watch face built with the Watch Face Format: your own photo,
+dimmed behind a bold digital clock, with four data arcs around the edge.
 
-Layout follows Samsung's Health Dashboard+ (geometry and colors taken from
-its APK; each gauge fills one quadrant):
-- Steps (9 -> 12 o'clock, complication, default step count) and battery
-  (3 -> 6 o'clock, complication, default watch battery). The number rides just
-  past the fill tip, and moves inside the fill in black once the fill passes 62°.
-- Heart rate ticks (inner, 9 -> 12): gradient scale 40-220 bpm, an arrow marks
-  the current rate with the reading centered on it. Read directly from the watch.
-- UV ticks (inner, 3 -> 6): fill = UV index (0-11), level word on the fill tip.
-- Date, weather-condition icon and temperature on one curved line, lower left
-  (watch weather; icons are drawn by the generator, moon variants at night).
-- Pickable, no default: action pill under the clock, three stats along the
-  top right (green/blue/pink dots), and a round complication top right
-  (ring = progress for ranged/goal data, icon over value).
-- AM/PM only in 12-hour mode. Always-on mode shows everything except the photo
-  (colon stays solid).
-- Editor "Health arcs": heart rate & UV / heart rate only / UV only / none.
-Font: Quicksand throughout (SIL OFL - licenses/Quicksand-OFL.txt), bundled in
-res/font as static weights of the variable font (no regular: the lightest text uses medium). Quicksand has a Reserved Font
-Name, so these modified copies are renamed "BU Rounded" (rounded_*.ttf).
-FONTS/CLOCK_FONT in the generator pick the files; rounded_medium_bigdot is a
-generated copy with a 1.6x bullet for the stats dots. The bpm and UV text use
-Inter (SIL OFL, no Reserved Font Name - licenses/Inter-OFL.txt), inter_*.ttf.
-Colors: Samsung's three themes (Lime mint, Coral pink, Blue violet) plus Berry,
-Orchid, Sunset, Ocean, Ember, Mono.
+The layout is a remake of Samsung's Health Dashboard+, with its geometry and
+colors taken from that face's APK. Photo Dash Plus adds a custom photo
+background and more themes.
 
-Heart rate / UV / weather aren't complication slots: on Wear OS a slot with
-no provider draws nothing, and there are no system providers for them.
+## Features
 
-## Editing
-watchface.xml is generated: edit tools/generate.py (geometry, themes, photo
-dimming PHOTO_ALPHA) and run `python3 tools/generate.py` (needs Pillow).
-Runtime quirks the generator works around:
-- Gradient `colors` can't use [CONFIGURATION...] colors: a tinted white alpha
-  gradient is layered over solid color A instead.
-- Slot content is clipped to its BoundingArc/BoundingBox region, so each
-  slot's region must cover everything it draws (icons included).
-- Part/slot geometry attributes are parsed as integers.
-- TextCircular text is centered on its circle (not sat on it as a baseline).
-- Text shadows: a <Shadow> wrapped around the Template. TimeText ignores it, so
-  the clock is drawn as text from [HOUR_*]/[MINUTE].
-- [WEATHER.CONDITION] codes: see WEATHER_ICONS in the generator.
-- COUNTER_CLOCKWISE TextCircular needs startAngle > endAngle.
-- The watch stores slot assignments by position: adding/removing/reordering
-  ComplicationSlots shifts existing assignments, so re-pick them in the editor.
+- **Photo background.** Pick any photo in the watch face editor. It's dimmed
+  so the arcs and text stay readable.
+- **Steps arc** (9 → 12 o'clock) and **battery arc** (3 → 6 o'clock). Both
+  are complication slots, defaulting to step count and watch battery. The
+  value follows the tip of the fill. They can also be set to **fixed** step
+  count and battery that don't open an app when tapped (see Customization).
+- **Heart rate scale** (inner, 9 → 12): a 40–220 bpm gradient with an arrow
+  at your current rate. The face reads this from the watch sensor.
+- **UV scale** (inner, 3 → 6): fills by UV index (0–11) and labels it
+  low / moderate / high / very high / extreme.
+- **Date, weather icon and temperature** on a curved line at the lower left.
+  At night the icons switch to moon variants.
+- **Optional complications** (empty until you pick them):
+  - an action pill under the clock
+  - three stats along the top right, marked with green, blue and pink dots
+  - a round complication at the top right, with a progress ring for ranged
+    or goal data
+- **Always-on mode** shows everything except the photo.
+- AM/PM only appears in 12-hour mode.
 
-## Build & install (Linux)
-    # needs JDK 17+ and Android SDK (set sdk.dir in local.properties)
-    ./gradlew :photodashplus:assembleDebug
-    adb connect <watch-ip>:<port>      # Wireless debugging on the watch
-    adb install photodashplus/build/outputs/apk/debug/photodashplus-debug.apk
-    # then set it: press-and-hold face > pick "Photo Dash Plus"
-    # (some Wear OS versions need: adb shell am broadcast -a com.google.android.wearable.app.DEBUG_SURFACE --es operation set-watchface --es watchFaceId com.alexankitty.photodashplus)
+## Customization
+
+Long-press the watch face, then tap **Customize**:
+
+| Setting            | Options |
+|--------------------|---------|
+| Background photo   | Any photo |
+| Colors             | Lime mint, Coral pink, Blue violet (Samsung's), Berry, Orchid, Sunset, Ocean, Ember, Mono |
+| Health arcs        | Heart rate & UV, Heart rate only, UV only, None |
+| Side arcs          | Complications (tappable, pick your own) or fixed Steps & battery |
+| Complications      | Steps, Battery, Action button, Stats 1–3, Round complication |
+
+**Side arcs** chooses how the left and right arcs work. As *Complications*
+(the default) they're the editable steps/battery slots above, which — like any
+Wear OS complication — open their provider's app when tapped. Set to *Steps &
+battery*, they're drawn straight from the watch's step and battery data
+instead: still the same arcs, but fixed to those two values and with no tap, so
+you can't accidentally open the battery app and toggle battery saver. In that
+mode those two arcs can't be re-pointed at another provider.
+
+Heart rate, UV and weather aren't complication slots. A Wear OS slot with no
+provider draws nothing, and Wear OS has no system providers for these values,
+so the face reads them directly.
+
+## Requirements
+
+- Wear OS 6 or newer (Watch Face Format v4, needed for the photo background)
+- Heart rate and weather data from the watch, for those elements
+
+## Install
+
+Download the APK from Releases, or build it yourself (see
+[DEVELOPING.md](DEVELOPING.md)). Then install it with adb:
+
+    adb connect <watch-ip>:<port>      # turn on Wireless debugging on the watch first
+    adb install photodashplus-release.apk
+
+To use it, long-press the current watch face and pick **Photo Dash Plus**.
+Some Wear OS versions need this command to set it instead:
+
+    adb shell am broadcast -a com.google.android.wearable.app.DEBUG_SURFACE \
+        --es operation set-watchface --es watchFaceId com.alexankitty.photodashplus
+
+## Fonts & licenses
+
+- [Quicksand](https://github.com/andrew-paglinawan/QuicksandFamily) (SIL OFL,
+  [licenses/Quicksand-OFL.txt](licenses/Quicksand-OFL.txt)). Used for most
+  text. Quicksand has a Reserved Font Name, so the modified copies bundled
+  here are renamed "BU Rounded".
+- [Inter](https://github.com/rsms/inter) (SIL OFL,
+  [licenses/Inter-OFL.txt](licenses/Inter-OFL.txt)). Used for the bpm and UV
+  text.
+
+Photo Dash Plus is an independent remake and has no affiliation with Samsung.
