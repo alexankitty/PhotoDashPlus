@@ -395,7 +395,7 @@ def build():
     options = "\n".join(f'<ColorOption id="{i}" displayName="{key}" colors="{" ".join(c[k] for k in COLOR_KEYS)}"/>'
                         for i, (key, _, c) in enumerate(THEMES))
 
-    ampm = text(*s(81, 113, 114, 36), 28 * S, "#d4ffffff", "%s", "[AMPM_STRING]", weight="BOLD")
+    ampm = text(*s(100, 113, 114, 36), 28 * S, "#d4ffffff", "%s", "[AMPM_STRING]", weight="BOLD")
     # Clock: hours and minutes either side of a separate colon. Like Samsung's, the colon is white for
     # the first 500ms of each second and 50% white for the rest (steady white in always-on mode).
     cy, ch, size, colon_w = 168, 124, 106, 26
